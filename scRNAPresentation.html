@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="" xml:lang="">
+  <head>
+    <title>Cell Classification Benchmarking Using Data Reduction Methods</title>
+    <meta charset="utf-8" />
+    <meta name="author" content="GW McElfresh" />
+    <link href="libs/remark-css/default.css" rel="stylesheet" />
+    <link href="libs/remark-css/default-fonts.css" rel="stylesheet" />
+  </head>
+  <body>
+    <textarea id="source">
+class: center, middle, inverse, title-slide
+
+# Cell Classification Benchmarking Using Data Reduction Methods
+### GW McElfresh
+### 9/15/2020
+
+---
+
+
+
+# Dataset and Motivation
+
+The Tasic Brain Data set is a set of scRNASeq expression profiles from ~1600 brain cells from adult mice. 
+
+The original analysis yielded an impressive cell taxonomy &lt;br&gt;
+(best viewed at casestudies.brain-map.org/celltax)
+
+
+
+&lt;img src="rawtax_with_border.png" width="33%" height="240" /&gt;&lt;img src="intertax_with_border.png" width="33%" height="240" /&gt;&lt;img src="tax_with_border.png" width="33%" height="240" /&gt;
+
+---
+# Dataset and Motivation
+
+Tasic _et al._ used a novel method of determining cell type from scRNASeq expression profiles 
+
+&lt;img src="tasic2016mouseworkflow.png" width="750" height="400" /&gt;
+
+&lt;div align="center"&gt; Tasic &lt;i&gt;et al.&lt;/i&gt; 2016 &lt;/div&gt;
+
+---
+## The Goal
+
+
+The original analysis was able to determine 49 unique transcriptomic profiles, but the methodology was unable to cluster 82 of their cortex cells. 
+
+Looking at the data, we see that the unclassified data fall into established clusters, but may be difficult to classify correctly. 
+
+&lt;img src="umap_all_data.png" width="750" height="400" /&gt;
+
+---
+#The Goal
+
+We can see this more clearly when we look at just the neuron data, where including the unclassified data smears the clusters together. 
+
+&lt;img src="GABAvsGLUTA.png" width="50%" height="50%" /&gt;&lt;img src="GABAvsGLUTAplusUNCLASS.png" width="50%" height="50%" /&gt;
+
+Is there a way to classify these cells?
+
+---
+#Hypotheses
+
+The unclassified cells may be able to be re-classified by post-hoc machine learning from the classified dataset
+
+- Newer clustering methods (UMAP) may be more robust than PCA
+
+- Gene subsets (differential expression) may be able to discriminate the data more successfully
+
+---
+#Filtering The Data
+
+Filtering for lowly expressed genes yields violin plots that _might_ work to discriminate the data, but filtering and selecting just the neuron cells is more promising
+
+&lt;img src="violinsall.png" width="50%" height="50%" /&gt;&lt;img src="violinsNeurons.png" width="50%" height="50%" /&gt;
+
+Filter criterion:
+- average CPM &gt; 1 per sample
+
+---
+#Hypothesis 1: Training a Classifier on UMAP Projection
+
+Now that the expression matricies are less sparse, let's train a random forest and see if the filtering and normalization are enough to cluster the data
+
+--
+
+&lt;img src="umap_no_predictions.png" width="50%" height="50%" /&gt;&lt;img src="umap_gaba_gluta_unclassed.png" width="50%" height="50%" /&gt;
+
+
+|                    | GABAergicNeuron| GlutamatergicNeuron|
+|:-------------------|---------------:|-------------------:|
+|GABAergicNeuron     |             138|                  19|
+|GlutamatergicNeuron |              21|                 137|
+
+
+
+---
+#Hypothesis 2: Training a Classifier on Differential Expression Data
+
+Differentially expressed genes are generally considered to be indicative of different cell types, so that may sufficient to discriminate between the clusters. 
+
+--
+.pull-left[
+&lt;img src="Volcanoplot.png" width="528" style="display: block; margin: auto;" /&gt;
+]
+
+.pull-right[
+
+- By performing differential expression on the different neuron types, we drastically reduce the number of genes
+
+- The reduced gene set of ~600 genes - which should be large enough for machine learning
+]
+
+---
+name:flex
+#   Cell Type Classification on Differentially Expressed Genes
+&lt;style&gt;
+
+div#slide-flex.remark-slide-content &gt; h1:first-of-type {
+  margin-left: 50px;
+  margin-right: 50px;
+}
+
+div#slide-flex.remark-slide-content {
+  padding-top: 10px;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 10px;
+}
+&lt;/style&gt;
+
+|                    | GABAergicNeuron| GlutamatergicNeuron|
+|:-------------------|---------------:|-------------------:|
+|GABAergicNeuron     |             253|                   0|
+|GlutamatergicNeuron |               0|                 272|
+
+
+&lt;img src="diffGenesUnclassed.png" width="50%" height="80%" /&gt;&lt;img src="DiffGenesPredicted.png" width="50%" height="80%" /&gt;
+
+---
+#Further Analysis
+
+The differential expression analysis shows that the cells form two modules (&lt;span style="color: blue;"&gt;upregulated genes &lt;/span&gt; and &lt;span style="color: red;"&gt; downregulated genes&lt;/span&gt;)
+
+&lt;img src="GeneExpression.png" width="80%" height="80%" style="display: block; margin: auto;" /&gt;
+
+
+---
+#Further Analysis 
+
+Classification based on GO term enrichment is a promising avenue
+
+- If the differentially expressed genes do not cluster the data well, GO terms might!
+
+    - For these, linear regression (weights learned from GO term abundances) could be a solution
+--
+
+GSEA is also a regress-able data source, but this is likely to train an incredibly sensitive classifier suitible for hyper-specialized sub-cell types
+
+
+
+---
+#Conclusions
+
+- Differential gene expression may work to determine intermediate cell types where whole transcriptome profiles are unclear
+
+- For more homogeneous data, higher order analyses (GO term enrichment, GSEA) may be required, but at the cost of machine learning sophistication
+    </textarea>
+<style data-target="print-only">@media screen {.remark-slide-container{display:block;}.remark-slide-scaler{box-shadow:none;}}</style>
+<script src="https://remarkjs.com/downloads/remark-latest.min.js"></script>
+<script src="macros.js"></script>
+<script>var slideshow = remark.create({
+"countIncrementalSlides": false
+});
+if (window.HTMLWidgets) slideshow.on('afterShowSlide', function (slide) {
+  window.dispatchEvent(new Event('resize'));
+});
+(function(d) {
+  var s = d.createElement("style"), r = d.querySelector(".remark-slide-scaler");
+  if (!r) return;
+  s.type = "text/css"; s.innerHTML = "@page {size: " + r.style.width + " " + r.style.height +"; }";
+  d.head.appendChild(s);
+})(document);
+
+(function(d) {
+  var el = d.getElementsByClassName("remark-slides-area");
+  if (!el) return;
+  var slide, slides = slideshow.getSlides(), els = el[0].children;
+  for (var i = 1; i < slides.length; i++) {
+    slide = slides[i];
+    if (slide.properties.continued === "true" || slide.properties.count === "false") {
+      els[i - 1].className += ' has-continuation';
+    }
+  }
+  var s = d.createElement("style");
+  s.type = "text/css"; s.innerHTML = "@media print { .has-continuation { display: none; } }";
+  d.head.appendChild(s);
+})(document);
+// delete the temporary CSS (for displaying all slides initially) when the user
+// starts to view slides
+(function() {
+  var deleted = false;
+  slideshow.on('beforeShowSlide', function(slide) {
+    if (deleted) return;
+    var sheets = document.styleSheets, node;
+    for (var i = 0; i < sheets.length; i++) {
+      node = sheets[i].ownerNode;
+      if (node.dataset["target"] !== "print-only") continue;
+      node.parentNode.removeChild(node);
+    }
+    deleted = true;
+  });
+})();
+(function() {
+  "use strict"
+  // Replace <script> tags in slides area to make them executable
+  var scripts = document.querySelectorAll(
+    '.remark-slides-area .remark-slide-container script'
+  );
+  if (!scripts.length) return;
+  for (var i = 0; i < scripts.length; i++) {
+    var s = document.createElement('script');
+    var code = document.createTextNode(scripts[i].textContent);
+    s.appendChild(code);
+    var scriptAttrs = scripts[i].attributes;
+    for (var j = 0; j < scriptAttrs.length; j++) {
+      s.setAttribute(scriptAttrs[j].name, scriptAttrs[j].value);
+    }
+    scripts[i].parentElement.replaceChild(s, scripts[i]);
+  }
+})();
+(function() {
+  var links = document.getElementsByTagName('a');
+  for (var i = 0; i < links.length; i++) {
+    if (/^(https?:)?\/\//.test(links[i].getAttribute('href'))) {
+      links[i].target = '_blank';
+    }
+  }
+})();</script>
+
+<script>
+slideshow._releaseMath = function(el) {
+  var i, text, code, codes = el.getElementsByTagName('code');
+  for (i = 0; i < codes.length;) {
+    code = codes[i];
+    if (code.parentNode.tagName !== 'PRE' && code.childElementCount === 0) {
+      text = code.textContent;
+      if (/^\\\((.|\s)+\\\)$/.test(text) || /^\\\[(.|\s)+\\\]$/.test(text) ||
+          /^\$\$(.|\s)+\$\$$/.test(text) ||
+          /^\\begin\{([^}]+)\}(.|\s)+\\end\{[^}]+\}$/.test(text)) {
+        code.outerHTML = code.innerHTML;  // remove <code></code>
+        continue;
+      }
+    }
+    i++;
+  }
+};
+slideshow._releaseMath(document);
+</script>
+<!-- dynamically load mathjax for compatibility with self-contained -->
+<script>
+(function () {
+  var script = document.createElement('script');
+  script.type = 'text/javascript';
+  script.src  = 'https://mathjax.rstudio.com/latest/MathJax.js?config=TeX-MML-AM_CHTML';
+  if (location.protocol !== 'file:' && /^https?:/.test(script.src))
+    script.src  = script.src.replace(/^https?:/, '');
+  document.getElementsByTagName('head')[0].appendChild(script);
+})();
+</script>
+  </body>
+</html>
